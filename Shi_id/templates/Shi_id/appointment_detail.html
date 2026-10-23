@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Appointment {{ appointment.appointment_id }}</title>
+    <style>
+        body { margin:0; padding:24px; background:#07111f; color:#eafcff; font-family:'Segoe UI',sans-serif; }
+        main { width:min(100%,720px); margin:30px auto; padding:clamp(20px,5vw,36px); background:#0d1b2a; border:1px solid rgba(103,232,249,.35); border-radius:16px; }
+        h1 { color:#67e8f9; overflow-wrap:anywhere; }
+        dl { display:grid; grid-template-columns:minmax(130px,1fr) 2fr; gap:14px; }
+        dt { color:#a8d6e5; font-weight:700; } dd { margin:0; overflow-wrap:anywhere; }
+        a { color:#67e8f9; } button { margin-top:16px; padding:10px 16px; border:0; border-radius:8px; color:#07111f; background:#67e8f9; font-weight:700; }
+        @media(max-width:480px) { dl { grid-template-columns:1fr; gap:5px; } dd { margin-bottom:10px; } }
+    </style>
+</head>
+<body>
+<main>
+    <h1>Appointment {{ appointment.appointment_id }}</h1>
+    {% for message in messages %}<p>{{ message }}</p>{% endfor %}
+    <dl>
+        <dt>Service</dt><dd>{% if appointment.service_name_snapshot %}{{ appointment.service_name_snapshot }}{% elif appointment.service %}{{ appointment.service.name }}{% else %}Not recorded{% endif %}</dd>
+        <dt>Purpose</dt><dd>{{ appointment.purpose }}</dd>
+        <dt>Resident</dt><dd>{{ appointment.resident_name }}</dd>
+        <dt>Contact</dt><dd>{{ appointment.contact_number }}</dd>
+        {% if appointment.resident_address %}<dt>Resident address</dt><dd>{{ appointment.resident_address }}</dd>{% endif %}
+        <dt>Date</dt><dd>{{ appointment.date|date:"l, F j, Y" }}</dd>
+        <dt>Time</dt><dd>{{ appointment.time|time:"g:i A" }}–{{ appointment.end_time|time:"g:i A" }}</dd>
+        <dt>Status</dt><dd>{{ appointment.status }}</dd>
+        <dt>Booked</dt><dd>{{ appointment.created_at|date:"M j, Y g:i A" }}</dd>
+    </dl>
+    {% if request.user.is_staff and appointment.status == 'Pending' %}
+    <form method="post" action="{% url 'update_appointment_status' appointment.appointment_id %}" onsubmit="return confirm('Approve this appointment?')">
+        {% csrf_token %}<input type="hidden" name="status" value="Approved"><button type="submit">Approve appointment</button>
+    </form>
+    {% elif request.user.is_staff and appointment.status == 'Approved' %}
+    <form method="post" action="{% url 'update_appointment_status' appointment.appointment_id %}" onsubmit="return confirm('Mark this appointment completed?')">
+        {% csrf_token %}<input type="hidden" name="status" value="Completed"><button type="submit">Mark completed</button>
+    </form>
+    {% endif %}
+    {% if appointment.status == 'Pending' or appointment.status == 'Approved' %}
+    <form method="post" action="{% url 'cancel_appointment' appointment.appointment_id %}">
+        {% csrf_token %}<button type="submit" onclick="return confirm('Cancel this appointment?')">Cancel appointment</button>
+    </form>
+    {% endif %}
+    <p><a href="{% url 'home' %}">Back to dashboard</a></p>
+</main>
+</body>
+</html>

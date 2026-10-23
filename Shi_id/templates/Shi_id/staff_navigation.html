@@ -1,0 +1,16 @@
+<nav aria-label="Main navigation">
+    <a href="{% url 'home' %}">Home</a>
+    {% if user.is_authenticated and user.is_staff %}
+        <a href="{% url 'home' %}#appointments">Appointments</a>
+        <a href="{% url 'schedule_management' %}">Schedule</a>
+        <a href="{% url 'resident_management' %}">Residents</a>
+        <a href="{% url 'service_management' %}">Services &amp; Settings</a>
+        <a href="{% url 'reports' %}">Reports</a>
+        <a href="{% url 'resident_profile' %}">Profile</a>
+    {% elif user.is_authenticated %}
+        <a href="{% url 'resident_profile' %}">Profile</a>
+    {% else %}
+        <a href="{% url 'login' %}">Log In</a>
+        <a href="{% url 'signup' %}">Register</a>
+    {% endif %}
+</nav>

@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up</title>
+    <style>
+        :root {
+            --bg: #07111f;
+            --bg-2: #0d1b2a;
+            --panel: rgba(15, 23, 42, 0.92);
+            --line: rgba(103, 232, 249, 0.35);
+            --cyan: #67e8f9;
+            --text: #eafcff;
+            --muted: #a8d6e5;
+            --shadow: 0 0 24px rgba(103, 232, 249, 0.18);
+            --error: #fca5a5;
+        }
+
+        * {
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background:
+                radial-gradient(circle at top left, rgba(96, 165, 250, 0.18), transparent 28%),
+                linear-gradient(135deg, var(--bg), var(--bg-2));
+            color: var(--text);
+        }
+
+        .form-box {
+            width: min(92vw, 460px);
+            background: var(--panel);
+            border: 1px solid var(--line);
+            border-radius: 20px;
+            padding: 32px 28px;
+            box-shadow: var(--shadow);
+        }
+
+        h2 {
+            margin: 0 0 12px;
+            color: var(--cyan);
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        p {
+            margin: 0 0 24px;
+            text-align: center;
+            color: var(--muted);
+        }
+
+        form {
+            display: grid;
+            gap: 18px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: var(--muted);
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+        }
+
+        input {
+            width: 100%;
+            padding: 12px 14px;
+            border: 1px solid var(--line);
+            border-radius: 10px;
+            background: rgba(10, 18, 31, 0.9);
+            color: var(--text);
+            outline: none;
+        }
+
+        input:focus {
+            border-color: rgba(103, 232, 249, 0.85);
+            box-shadow: 0 0 0 3px rgba(103, 232, 249, 0.18);
+        }
+
+        button {
+            padding: 14px 18px;
+            border: none;
+            border-radius: 10px;
+            background: linear-gradient(135deg, var(--cyan), #7dd3fc);
+            color: #07111f;
+            font-weight: 800;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            cursor: pointer;
+            box-shadow: 0 0 18px rgba(103, 232, 249, 0.45);
+        }
+
+        .back-link {
+            display: inline-block;
+            width: 100%;
+            margin-top: 18px;
+            text-align: center;
+            color: var(--cyan);
+            text-decoration: none;
+            font-weight: 700;
+        }
+
+        .errorlist {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            color: var(--error);
+        }
+
+        .field-help,
+        #location-message {
+            color: var(--muted);
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        #location-message.error {
+            color: var(--error);
+        }
+    </style>
+</head>
+<body>
+    <div class="form-box">
+        <h2>Create Account</h2>
+        <p>Join the Barangay Appointment System</p>
+
+        <form method="post" id="registration-form">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+                <ul class="errorlist">
+                    {% for error in form.non_field_errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+
+            {% for field in form %}
+                <div>
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.name == 'purok' %}
+                        <p class="field-help">Available puroks and sitios are managed by barangay staff.</p>
+                    {% endif %}
+                    {% if field.errors %}
+                        <ul class="errorlist">
+                            {% for error in field.errors %}
+                                <li>{{ error }}</li>
+                            {% endfor %}
+                        </ul>
+                    {% endif %}
+                </div>
+            {% endfor %}
+
+            <p id="location-message" role="status" aria-live="polite">
+                If your barangay has no available purok/sitio choices, please contact barangay staff.
+            </p>
+            <button type="submit">Sign Up</button>
+        </form>
+
+        <a class="back-link" href="{% url 'home' %}">← Back to Home</a>
+    </div>
+    <script>
+        const citySelect = document.getElementById('id_city_municipality');
+        const barangaySelect = document.getElementById('id_barangay');
+        const purokSelect = document.getElementById('id_purok');
+        const locationMessage = document.getElementById('location-message');
+
+        function resetSelect(select, placeholder) {
+            select.replaceChildren(new Option(placeholder, ''));
+        }
+
+        function populateSelect(select, locations, placeholder) {
+            resetSelect(select, placeholder);
+            locations.forEach((location) => select.add(new Option(location.name, location.id)));
+        }
+
+        citySelect.addEventListener('change', async () => {
+            resetSelect(barangaySelect, 'Select a barangay');
+            resetSelect(purokSelect, 'Select a purok or sitio');
+            locationMessage.classList.remove('error');
+            if (!citySelect.value) return;
+            try {
+                const response = await fetch(`{% url 'location_barangays' %}?city=${encodeURIComponent(citySelect.value)}`);
+                if (!response.ok) throw new Error('Barangays could not be loaded. Please try again.');
+                const data = await response.json();
+                populateSelect(barangaySelect, data.locations, 'Select a barangay');
+                if (!data.locations.length) {
+                    locationMessage.textContent = 'There are no active barangays for this city. Please contact staff.';
+                }
+            } catch (error) {
+                locationMessage.textContent = error.message;
+                locationMessage.classList.add('error');
+            }
+        });
+
+        barangaySelect.addEventListener('change', async () => {
+            resetSelect(purokSelect, 'Select a purok or sitio');
+            locationMessage.classList.remove('error');
+            if (!barangaySelect.value) return;
+            try {
+                const response = await fetch(`{% url 'location_puroks' %}?barangay=${encodeURIComponent(barangaySelect.value)}`);
+                if (!response.ok) throw new Error('Puroks and sitios could not be loaded. Please try again.');
+                const data = await response.json();
+                populateSelect(purokSelect, data.locations, 'Select a purok or sitio');
+                locationMessage.textContent = data.locations.length
+                    ? 'Select your purok or sitio.'
+                    : 'No puroks or sitios are configured for this barangay yet. Please contact barangay staff.';
+            } catch (error) {
+                locationMessage.textContent = error.message;
+                locationMessage.classList.add('error');
+            }
+        });
+
+        document.querySelectorAll('[data-name-field="true"]').forEach((field) => {
+            field.addEventListener('input', () => {
+                const start = field.selectionStart;
+                const end = field.selectionEnd;
+                field.value = field.value
+                    .replace(/\s+/g, ' ')
+                    .toLocaleLowerCase()
+                    .replace(/(^|[\s'-])([^\s'-])/g, (_, separator, character) =>
+                        separator + character.toLocaleUpperCase());
+                field.setSelectionRange(start, end);
+            });
+            field.addEventListener('blur', () => {
+                field.value = field.value.trim().replace(/\s+/g, ' ');
+            });
+        });
+    </script>
+</body>
+</html>

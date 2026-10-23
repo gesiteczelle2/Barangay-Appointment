@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Book an Appointment</title>
+    <style>
+        :root { color-scheme: dark; --bg:#07111f; --panel:#0d1b2a; --line:rgba(103,232,249,.35); --cyan:#67e8f9; --muted:#a8d6e5; --text:#eafcff; }
+        * { box-sizing:border-box; font-family:'Segoe UI',Tahoma,sans-serif; }
+        body { margin:0; background:linear-gradient(135deg,#07111f,#0d1b2a); color:var(--text); }
+        header { padding:20px 5%; border-bottom:1px solid var(--line); }
+        h1 { font-size:clamp(18px,3vw,25px); margin:0; }
+        main { width:min(96%,1050px); margin:28px auto; }
+        .panel { background:rgba(15,23,42,.92); border:1px solid var(--line); border-radius:16px; padding:clamp(16px,3vw,28px); margin-bottom:20px; }
+        h2,h3 { color:var(--cyan); margin-top:0; }
+        .calendar-top,.legend,.day-picker { display:flex; flex-wrap:wrap; gap:12px; align-items:center; justify-content:space-between; }
+        a { color:var(--cyan); }
+        .calendar { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:6px; margin-top:18px; }
+        .weekday,.day { text-align:center; padding:10px 4px; }
+        .weekday { color:var(--muted); font-size:.8rem; }
+        .day { min-height:54px; border:1px solid transparent; border-radius:9px; text-decoration:none; display:grid; place-items:center; }
+        .day.outside { opacity:.4; }
+        .green { background:#14532d; border-color:#22c55e; color:#dcfce7; }
+        .red { background:#7f1d1d; border-color:#ef4444; color:#fee2e2; }
+        .gray { background:#374151; border-color:#6b7280; color:#e5e7eb; }
+        .day.selected { outline:2px solid var(--cyan); outline-offset:1px; }
+        .legend span { padding:6px 10px; border-radius:7px; font-size:.85rem; }
+        .slots { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:9px; margin-top:12px; }
+        .slot { text-align:left; border:1px solid; border-radius:9px; padding:11px; }
+        button.slot { cursor:pointer; }
+        button.slot:disabled { cursor:not-allowed; opacity:.85; }
+        form.booking { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:15px; }
+        .field { display:grid; gap:6px; }
+        .field.full { grid-column:1/-1; }
+        label { color:var(--muted); font-weight:600; }
+        input,select { width:100%; padding:12px; border:1px solid var(--line); border-radius:8px; color:var(--text); background:#091523; }
+        .submit { grid-column:1/-1; border:0; border-radius:9px; padding:13px; background:var(--cyan); color:#07111f; font-weight:800; cursor:pointer; }
+        .errorlist { color:#fca5a5; list-style:none; padding:0; margin:4px 0; }
+        .notice { padding:12px; margin-bottom:14px; border-radius:8px; background:#7f1d1d; color:#fee2e2; }
+        .service-description { color:var(--muted); margin:0; font-size:.92rem; }
+        .service-unavailable { padding:12px; border-radius:8px; background:#374151; color:#e5e7eb; }
+        @media(max-width:560px) { .weekday { font-size:.65rem; } .day { min-height:42px; } form.booking { grid-template-columns:1fr; } .field.full,.submit { grid-column:1; } }
+    </style>
+</head>
+<body>
+    <header><h1>Barangay Appointment Management System</h1></header>
+    <main>
+        <section class="panel">
+            <div class="calendar-top">
+                <h2>Choose an appointment date</h2>
+                <div><a href="?month={{ previous_month }}&date={{ selected_day|date:'Y-m-d' }}">← Previous</a>
+                    &nbsp; <strong>{{ month_label }}</strong> &nbsp;
+                    <a href="?month={{ next_month }}&date={{ selected_day|date:'Y-m-d' }}">Next →</a></div>
+            </div>
+            <div class="legend" aria-label="Availability legend">
+                <span class="green">Available</span><span class="red">Fully booked / closed</span><span class="gray">Past / weekend</span>
+            </div>
+            <div class="calendar">
+                <div class="weekday">Mon</div><div class="weekday">Tue</div><div class="weekday">Wed</div>
+                <div class="weekday">Thu</div><div class="weekday">Fri</div><div class="weekday">Sat</div><div class="weekday">Sun</div>
+                {% for week in month_days %}
+                    {% for day in week %}
+                        <a class="day {{ day.state }} {% if not day.in_month %}outside{% endif %} {% if day.date == selected_day %}selected{% endif %}"
+                           href="?month={{ month_start|date:'Y-m' }}&date={{ day.date|date:'Y-m-d' }}"
+                           aria-label="{{ day.date|date:'l, F j, Y' }}: {{ day.state }}">
+                            {{ day.number }}
+                        </a>
+                    {% endfor %}
+                {% endfor %}
+            </div>
+        </section>
+
+        <section class="panel">
+            <h2 id="selected-day-heading">Time slots for {{ selected_day|date:"l, F j, Y" }}</h2>
+            <p id="availability-error" role="status" aria-live="polite"></p>
+            <div class="slots">
+                {% for slot in slots %}
+                    <button type="button" class="slot {{ slot.state }}" data-start="{{ slot.start|time:'H:i' }}" data-end="{{ slot.end|time:'H:i' }}"
+                            {% if slot.state != 'green' %}disabled{% endif %}>
+                        {{ slot.start|time:"g:i A" }}–{{ slot.end|time:"g:i A" }} ·
+                        {% if slot.state == 'green' %}Available{% elif slot.state == 'red' %}Unavailable{% else %}Unavailable{% endif %}
+                        {% if slot.reason %}<br><small>{{ slot.reason }}</small>{% endif %}
+                    </button>
+                {% endfor %}
+            </div>
+        </section>
+
+        <section class="panel">
+            <h2>Appointment details</h2>
+            {% for message in messages %}<div class="notice">{{ message }}</div>{% endfor %}
+            {% if not service_catalog %}
+                <p class="service-unavailable">No services are currently available for booking. Please check back later or contact barangay staff.</p>
+            {% endif %}
+            <form method="post" class="booking" novalidate>
+                {% csrf_token %}
+                {% if form.non_field_errors %}<div class="field full"><ul class="errorlist">{{ form.non_field_errors }}</ul></div>{% endif %}
+                {% for field in form %}
+                    <div class="field {% if field.name == 'purpose' or field.name == 'service' %}full{% endif %}">
+                        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                        {{ field }}
+                        {% if field.name == 'service' %}<p class="service-description" id="service-description" aria-live="polite"></p>{% endif %}
+                        {% if field.errors %}<ul class="errorlist">{% for error in field.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+                    </div>
+                {% endfor %}
+                <button class="submit" type="submit" {% if not service_catalog %}disabled{% endif %}>Submit Appointment</button>
+            </form>
+            <p><a href="{% url 'home' %}">← Back to Home</a></p>
+        </section>
+    </main>
+    {{ service_catalog|json_script:"service-catalog" }}
+    <script>
+        const serviceSelect = document.getElementById('id_service');
+        const serviceDescription = document.getElementById('service-description');
+        const serviceCatalog = JSON.parse(document.getElementById('service-catalog').textContent);
+        const updateServiceDescription = () => {
+            const service = serviceCatalog.find((item) => String(item.pk) === serviceSelect.value);
+            serviceDescription.textContent = service ? service.description : '';
+        };
+        serviceSelect.addEventListener('change', updateServiceDescription);
+        updateServiceDescription();
+
+        const timeField = document.getElementById('id_time');
+        const dateField = document.getElementById('id_date');
+        const availabilityError = document.getElementById('availability-error');
+        const slotButtons = [...document.querySelectorAll('.slot[data-start]')];
+        const dateHeading = document.getElementById('selected-day-heading');
+        const formatTime = (date, time) => new Intl.DateTimeFormat('en-PH', {
+            hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'Asia/Manila',
+        }).format(new Date(`${date}T${time}:00+08:00`));
+        const statusText = (status) => ({
+            green: 'Available',
+            red: 'Booked or closed',
+            gray: 'Past, weekend or outside schedule',
+        })[status];
+        const updateAvailability = async () => {
+            if (!dateField.value) return null;
+            availabilityError.textContent = '';
+            const response = await fetch(`{% url 'appointment_availability' %}?date=${encodeURIComponent(dateField.value)}`);
+            if (!response.ok) throw new Error('Availability could not be refreshed.');
+            const availability = await response.json();
+            slotButtons.forEach((button, index) => {
+                const slot = availability.slots[index];
+                button.className = `slot ${slot.status}`;
+                button.disabled = slot.status !== 'green';
+                button.textContent = `${formatTime(availability.date, slot.start)}–${formatTime(availability.date, slot.end)} · ${statusText(slot.status)}${slot.reason ? ` · ${slot.reason}` : ''}`;
+            });
+            dateHeading.textContent = `Time slots for ${new Intl.DateTimeFormat('en-PH', {
+                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Manila',
+            }).format(new Date(`${availability.date}T12:00:00+08:00`))}`;
+            return availability;
+        };
+        slotButtons.forEach((slot) => {
+            slot.addEventListener('click', () => {
+                timeField.value = slot.dataset.start;
+                timeField.focus();
+            });
+        });
+        dateField.addEventListener('change', async () => {
+            try {
+                await updateAvailability();
+            } catch (error) {
+                availabilityError.textContent = error.message;
+            }
+        });
+        document.querySelector('form.booking').addEventListener('submit', async (event) => {
+            if (!dateField.value || !timeField.value) return;
+            event.preventDefault();
+            try {
+                const availability = await updateAvailability();
+                const selected = availability.slots.find((slot) => slot.start === timeField.value);
+                if (!selected || selected.status !== 'green') {
+                    availabilityError.textContent = 'That time slot is no longer available. Please choose another slot.';
+                    return;
+                }
+                event.target.submit();
+            } catch (error) {
+                availabilityError.textContent = error.message;
+            }
+        });
+    </script>
+</body>
+</html>

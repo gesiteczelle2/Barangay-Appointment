@@ -1,0 +1,769 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1">
+
+    <title>
+        Services | Barangay Appointment System
+    </title>
+
+    <style>
+        /* ==========================================
+           GLOBAL STYLES
+        ========================================== */
+
+        * {
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: linear-gradient(
+                135deg,
+                #07111f,
+                #0d1b2a
+            );
+            color: #eafcff;
+        }
+
+        /* ==========================================
+           HEADER
+        ========================================== */
+
+        header {
+            padding: 20px 5%;
+            border-bottom: 1px solid
+                rgba(103, 232, 249, 0.35);
+        }
+
+        header h1 {
+            margin: 0;
+            font-size: 22px;
+            color: #67e8f9;
+        }
+
+        nav {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 18px;
+            margin-top: 12px;
+        }
+
+        nav a {
+            color: #67e8f9;
+            text-decoration: none;
+            font-weight: 650;
+        }
+
+        nav a:hover {
+            color: #ffffff;
+        }
+
+        /* ==========================================
+           MAIN LAYOUT
+        ========================================== */
+
+        main {
+            width: min(1100px, 94%);
+            margin: 26px auto 48px;
+
+            display: grid;
+            grid-template-columns:
+                minmax(280px, 360px)
+                minmax(0, 1fr);
+
+            gap: 18px;
+            align-items: start;
+        }
+
+        main > section {
+            min-width: 0;
+        }
+
+        /* ==========================================
+           PANELS
+        ========================================== */
+
+        .panel,
+        .service {
+            background: rgba(15, 23, 42, 0.92);
+            border: 1px solid
+                rgba(103, 232, 249, 0.35);
+            border-radius: 12px;
+            padding: 18px;
+        }
+
+        h2 {
+            color: #67e8f9;
+            margin: 0 0 15px;
+            font-size: 1.25rem;
+        }
+
+        /* ==========================================
+           BUTTONS
+        ========================================== */
+
+        .button {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+
+            border: 0;
+            border-radius: 8px;
+
+            padding: 10px 15px;
+
+            background: #67e8f9;
+            color: #07111f;
+
+            font-size: 14px;
+            font-weight: 700;
+            line-height: 1.4;
+            text-align: center;
+            text-decoration: none;
+
+            cursor: pointer;
+            transition:
+                background 0.2s ease,
+                transform 0.2s ease;
+        }
+
+        .button:hover {
+            background: #22d3ee;
+            transform: translateY(-1px);
+        }
+
+        .button:focus-visible {
+            outline: 2px solid #ffffff;
+            outline-offset: 3px;
+        }
+
+        .button.secondary {
+            background: #374151;
+            color: #eafcff;
+        }
+
+        .button.secondary:hover {
+            background: #4b5563;
+        }
+
+        /* ==========================================
+           LOCATION SETTINGS
+           FIX OVERLAPPING BUTTONS
+        ========================================== */
+
+        .location-settings {
+            display: block;
+            width: 100%;
+            margin: 0 0 15px;
+        }
+
+        .location-title {
+            display: block;
+            color: #a8d6e5;
+            font-size: 14px;
+            font-weight: 650;
+            margin-bottom: 10px;
+        }
+
+        .location-buttons {
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            gap: 10px;
+            width: 100%;
+        }
+
+        .location-buttons .button {
+            display: flex;
+            position: static;
+
+            width: 100%;
+            max-width: 100%;
+            min-width: 0;
+
+            padding: 11px 12px;
+
+            white-space: normal;
+            overflow-wrap: anywhere;
+            word-break: normal;
+
+            text-align: center;
+        }
+
+        /* ==========================================
+           ADVANCED ADMIN SETTINGS
+        ========================================== */
+
+        .admin-settings {
+            display: block;
+            width: 100%;
+            margin: 15px 0 20px;
+        }
+
+        .admin-settings .button {
+            display: flex;
+            position: static;
+
+            width: 100%;
+            max-width: 100%;
+
+            padding: 12px;
+
+            white-space: normal;
+            overflow-wrap: anywhere;
+        }
+
+        /* ==========================================
+           ADD / EDIT SERVICE FORM
+        ========================================== */
+
+        .panel form {
+            display: block;
+            width: 100%;
+            clear: both;
+        }
+
+        .field {
+            display: block;
+            width: 100%;
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            font-weight: 650;
+            margin-bottom: 6px;
+            color: #a8d6e5;
+        }
+
+        input[type="text"],
+        textarea,
+        select,
+        input[type="number"],
+        input[type="date"],
+        input[type="time"] {
+            display: block;
+
+            width: 100%;
+            max-width: 100%;
+
+            padding: 11px;
+
+            border: 1px solid
+                rgba(103, 232, 249, 0.35);
+
+            border-radius: 7px;
+
+            color: #eafcff;
+            background: #091523;
+
+            font-size: 14px;
+        }
+
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        input:focus,
+        textarea:focus,
+        select:focus {
+            outline: none;
+            border-color: #67e8f9;
+            box-shadow:
+                0 0 0 2px rgba(103, 232, 249, 0.12);
+        }
+
+        .check {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 12px 0;
+        }
+
+        .check input {
+            accent-color: #67e8f9;
+            width: 16px;
+            height: 16px;
+        }
+
+        .check label {
+            margin: 0;
+            cursor: pointer;
+        }
+
+        /* ==========================================
+           FORM ACTIONS
+        ========================================== */
+
+        .form-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .form-actions .button {
+            min-height: 42px;
+        }
+
+        /* ==========================================
+           ERRORS AND MESSAGES
+        ========================================== */
+
+        .errorlist {
+            color: #fca5a5;
+            padding-left: 18px;
+            margin: 8px 0;
+        }
+
+        .messages {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 15px;
+        }
+
+        .messages li {
+            padding: 12px;
+            background: #14532d;
+            border-radius: 7px;
+            margin-bottom: 8px;
+            overflow-wrap: anywhere;
+        }
+
+        /* ==========================================
+           CONFIGURED SERVICES
+        ========================================== */
+
+        .services-section {
+            min-width: 0;
+        }
+
+        .service {
+            margin-bottom: 12px;
+        }
+
+        .service-head {
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .service-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .service h3 {
+            margin: 0 0 5px;
+            color: #67e8f9;
+            font-size: 18px;
+            overflow-wrap: anywhere;
+        }
+
+        .service p {
+            color: #a8d6e5;
+            line-height: 1.5;
+            margin: 8px 0;
+            overflow-wrap: anywhere;
+        }
+
+        .muted {
+            color: #a8d6e5;
+        }
+
+        .status {
+            font-weight: 700;
+        }
+
+        .status.available {
+            color: #86efac;
+        }
+
+        .status.unavailable {
+            color: #fca5a5;
+        }
+
+        .service-actions {
+            display: flex;
+            flex-shrink: 0;
+            gap: 8px;
+        }
+
+        .service-actions .button {
+            white-space: nowrap;
+        }
+
+        /* ==========================================
+           RESPONSIVE DESIGN
+        ========================================== */
+
+        @media (max-width: 750px) {
+            main {
+                grid-template-columns: 1fr;
+            }
+
+            .panel,
+            .service {
+                padding: 16px;
+            }
+
+            .service-head {
+                flex-wrap: wrap;
+            }
+
+            .service-actions {
+                width: 100%;
+            }
+
+            .service-actions .button {
+                width: 100%;
+            }
+        }
+
+        @media (max-width: 420px) {
+            header {
+                padding: 18px 4%;
+            }
+
+            nav {
+                gap: 12px;
+            }
+
+            main {
+                width: 94%;
+            }
+
+            .form-actions {
+                flex-direction: column;
+            }
+
+            .form-actions .button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- ======================================
+         HEADER AND NAVIGATION
+    ======================================= -->
+
+    <header>
+        <h1>Barangay Services</h1>
+
+        {% include 'Shi_id/staff_navigation.html' %}
+    </header>
+
+    <!-- ======================================
+         MAIN CONTENT
+    ======================================= -->
+
+    <main>
+
+        <!-- ==================================
+             ADD / EDIT SERVICE
+        =================================== -->
+
+        <section class="panel">
+
+            <h2>
+                {% if editing_service %}
+                    Edit Service
+                {% else %}
+                    Add Service
+                {% endif %}
+            </h2>
+
+            <!-- LOCATION SETTINGS -->
+
+            {% if location_admin_links %}
+
+                <div class="location-settings">
+
+                    <div class="location-title">
+                        Location Settings
+                    </div>
+
+                    <div class="location-buttons">
+
+                        {% for item in location_admin_links %}
+
+                            <a
+                                href="{{ item.url }}"
+                                class="button secondary"
+                            >
+                                {{ item.label }}
+                            </a>
+
+                        {% endfor %}
+
+                    </div>
+
+                </div>
+
+            {% endif %}
+
+            <!-- ADVANCED ADMIN SETTINGS -->
+
+            {% if can_open_admin_site %}
+
+                <div class="admin-settings">
+
+                    <a
+                        href="{% url 'admin:index' %}"
+                        class="button secondary"
+                    >
+                        Advanced Admin Settings
+                    </a>
+
+                </div>
+
+            {% endif %}
+
+            <!-- DJANGO MESSAGES -->
+
+            {% if messages %}
+
+                <ul class="messages">
+
+                    {% for message in messages %}
+
+                        <li>
+                            {{ message }}
+                        </li>
+
+                    {% endfor %}
+
+                </ul>
+
+            {% endif %}
+
+            <!-- SERVICE FORM -->
+
+            <form method="post">
+
+                {% csrf_token %}
+
+                {% if editing_service %}
+
+                    <input
+                        type="hidden"
+                        name="service_id"
+                        value="{{ editing_service.pk }}"
+                    >
+
+                {% endif %}
+
+                <!-- DYNAMIC DJANGO FORM FIELDS -->
+
+                {% for field in form %}
+
+                    {% if field.field.widget.input_type == 'checkbox' %}
+
+                        <div class="check">
+
+                            {{ field }}
+
+                            <label for="{{ field.id_for_label }}">
+                                {{ field.label }}
+                            </label>
+
+                        </div>
+
+                        {% if field.errors %}
+
+                            <ul class="errorlist">
+
+                                {% for error in field.errors %}
+
+                                    <li>{{ error }}</li>
+
+                                {% endfor %}
+
+                            </ul>
+
+                        {% endif %}
+
+                    {% else %}
+
+                        <div class="field">
+
+                            <label for="{{ field.id_for_label }}">
+                                {{ field.label }}
+                            </label>
+
+                            {{ field }}
+
+                            {% if field.help_text %}
+                                <small class="muted">
+                                    {{ field.help_text }}
+                                </small>
+                            {% endif %}
+
+                            {% if field.errors %}
+
+                                <ul class="errorlist">
+
+                                    {% for error in field.errors %}
+
+                                        <li>{{ error }}</li>
+
+                                    {% endfor %}
+
+                                </ul>
+
+                            {% endif %}
+
+                        </div>
+
+                    {% endif %}
+
+                {% endfor %}
+
+                <!-- NON-FIELD ERRORS -->
+
+                {% if form.non_field_errors %}
+
+                    <ul class="errorlist">
+
+                        {% for error in form.non_field_errors %}
+
+                            <li>{{ error }}</li>
+
+                        {% endfor %}
+
+                    </ul>
+
+                {% endif %}
+
+                <!-- SAVE / CANCEL -->
+
+                <div class="form-actions">
+
+                    <button
+                        class="button"
+                        type="submit"
+                    >
+                        {% if editing_service %}
+                            Update Service
+                        {% else %}
+                            Save Service
+                        {% endif %}
+                    </button>
+
+                    {% if editing_service %}
+
+                        <a
+                            class="button secondary"
+                            href="{% url 'service_management' %}"
+                        >
+                            Cancel
+                        </a>
+
+                    {% endif %}
+
+                </div>
+
+            </form>
+
+        </section>
+
+        <!-- ==================================
+             CONFIGURED SERVICES
+        =================================== -->
+
+        <section class="services-section">
+
+            <h2>Configured services</h2>
+
+            {% for service in services %}
+
+                <article class="service">
+
+                    <div class="service-head">
+
+                        <div class="service-info">
+
+                            <h3>
+                                {{ service.name }}
+                            </h3>
+
+                            <p>
+                                {{ service.description|default:"No description provided." }}
+                            </p>
+
+                            <p class="muted">
+
+                                Booking:
+
+                                {% if service.is_active and not service.requires_configuration or service.is_active and service.is_configured %}
+
+                                    <span class="status available">
+                                        Available
+                                    </span>
+
+                                {% else %}
+
+                                    <span class="status unavailable">
+                                        Unavailable
+                                    </span>
+
+                                {% endif %}
+
+                                {% if service.requires_configuration %}
+                                    · Staff configuration required
+                                {% endif %}
+
+                                {% if service.requires_description %}
+                                    · Resident must describe request
+                                {% endif %}
+
+                            </p>
+
+                        </div>
+
+                        <!-- EDIT SERVICE BUTTON -->
+
+                        <div class="service-actions">
+
+                            <a
+                                class="button secondary"
+                                href="{% url 'service_management' %}?edit={{ service.pk }}"
+                            >
+                                Edit
+                            </a>
+
+                        </div>
+
+                    </div>
+
+                </article>
+
+            {% empty %}
+
+                <div class="service">
+
+                    <p class="muted">
+                        No services have been configured.
+                    </p>
+
+                </div>
+
+            {% endfor %}
+
+        </section>
+
+    </main>
+
+</body>
+</html>

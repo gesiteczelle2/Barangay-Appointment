@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Profile | Barangay Appointment System</title>
+    <style>
+        * { box-sizing:border-box; font-family:'Segoe UI',sans-serif; }
+        body { margin:0; padding:24px; background:#07111f; color:#eafcff; }
+        header { width:min(100%,780px); margin:0 auto 20px; display:flex; justify-content:space-between; align-items:center; gap:16px; }
+        header h1 { margin:0; color:#eafcff; font-size:clamp(17px,3vw,22px); }
+        nav { display:flex; gap:16px; flex-wrap:wrap; } nav a { color:#67e8f9; }
+        main { width:min(100%,720px); margin:30px auto; padding:clamp(20px,5vw,36px); background:#0d1b2a; border:1px solid rgba(103,232,249,.35); border-radius:16px; }
+        h2 { color:#67e8f9; margin-top:0; }
+        form.profile { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; }
+        .field { display:grid; align-content:start; gap:6px; }
+        .field.full { grid-column:1/-1; }
+        label { color:#a8d6e5; font-weight:600; }
+        input,select { width:100%; padding:11px; border:1px solid rgba(103,232,249,.35); border-radius:8px; color:#eafcff; background:#091523; }
+        .errorlist { color:#fca5a5; margin:0; padding-left:18px; }
+        .button { border:0; border-radius:8px; padding:10px 15px; background:#67e8f9; color:#07111f; font-weight:700; text-decoration:none; cursor:pointer; }
+        .button.secondary { background:#374151; color:#eafcff; }
+        .messages { list-style:none; padding:0; }
+        .messages li { margin:8px 0; padding:11px; border-radius:8px; background:#14532d; color:#dcfce7; }
+        .actions { display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-top:20px; }
+        .account { display:grid; grid-template-columns:minmax(130px,1fr) 2fr; gap:14px; }
+        .account strong { color:#a8d6e5; }
+        a { color:#67e8f9; }
+        @media(max-width:560px) { body { padding:14px; } form.profile { grid-template-columns:1fr; } .field.full { grid-column:1; } .account { grid-template-columns:1fr; gap:5px; } .account span { margin-bottom:10px; } header { align-items:flex-start; flex-direction:column; } }
+    </style>
+</head>
+<body>
+<header>
+    <h1>Barangay Appointment Management System</h1>
+    {% include 'Shi_id/staff_navigation.html' %}
+</header>
+<main>
+    <section class="panel">
+        <h2>{% if staff_profile %}Account Settings{% else %}Resident Profile{% endif %}</h2>
+        {% for message in messages %}<ul class="messages"><li>{{ message }}</li></ul>{% endfor %}
+        {% if form %}
+        <p><strong>Current complete address:</strong> {{ profile.complete_address }}</p>
+        <form class="profile" method="post">
+            {% csrf_token %}
+            {% for field in form %}
+                <div class="field {% if field.name == 'street_address' %}full{% endif %}">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.errors %}<ul class="errorlist">{% for error in field.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+                </div>
+            {% endfor %}
+            {% if form.non_field_errors %}<div class="field full"><ul class="errorlist">{{ form.non_field_errors }}</ul></div>{% endif %}
+            <div class="actions field full"><button class="button" type="submit">Save Profile</button></div>
+        </form>
+        {% elif profile %}
+        <dl class="account">
+            <strong>Full name</strong><span>{{ profile.full_name }}</span>
+            <strong>Email</strong><span>{{ request.user.email }}</span>
+            <strong>Contact number</strong><span>{{ profile.contact_number }}</span>
+            <strong>City / Municipality</strong><span>{{ profile.city_municipality.name }}</span>
+            <strong>Barangay</strong><span>{{ profile.barangay.name }}</span>
+            <strong>Purok / Sitio</strong><span>{{ profile.purok.name }}</span>
+            <strong>Street / house</strong><span>{{ profile.street_address }}</span>
+        </dl>
+        {% elif staff_profile %}
+        <dl class="account">
+            <strong>Username</strong><span>{{ request.user.username }}</span>
+            <strong>Name</strong><span>{{ request.user.get_full_name|default:"Not set" }}</span>
+            <strong>Email</strong><span>{{ request.user.email|default:"Not set" }}</span>
+            <strong>Access</strong><span>{% if request.user.is_superuser %}Administrator{% else %}Staff{% endif %}</span>
+        </dl>
+        <p><a href="{% url 'admin:password_change' %}">Change account password</a></p>
+        {% else %}
+        <p>This account does not have a resident profile yet. Contact barangay staff for assistance.</p>
+        {% endif %}
+        <div class="actions">
+            <form method="post" action="{% url 'logout' %}" onsubmit="return confirm('Log out of your account?')">
+                {% csrf_token %}<button class="button" type="submit">Log Out</button>
+            </form>
+        </div>
+    </section>
+</main>
+{% if form %}
+<script>
+    const cityField = document.getElementById('id_city_municipality');
+    const barangayField = document.getElementById('id_barangay');
+    const purokField = document.getElementById('id_purok');
+    const fillLocations = async (url, field, placeholder) => {
+        const response = await fetch(url);
+        if (!response.ok) throw new Error('Location choices could not be loaded.');
+        const data = await response.json();
+        field.replaceChildren(new Option(placeholder, ''));
+        data.locations.forEach((location) => field.add(new Option(location.name, location.id)));
+    };
+    cityField.addEventListener('change', async () => {
+        await fillLocations(`{% url 'location_barangays' %}?city=${encodeURIComponent(cityField.value)}`, barangayField, 'Select a barangay');
+        await fillLocations('{% url "location_puroks" %}?barangay=', purokField, 'Select a purok / sitio');
+    });
+    barangayField.addEventListener('change', async () => {
+        await fillLocations(`{% url 'location_puroks' %}?barangay=${encodeURIComponent(barangayField.value)}`, purokField, 'Select a purok / sitio');
+    });
+</script>
+{% endif %}
+</body>
+</html>

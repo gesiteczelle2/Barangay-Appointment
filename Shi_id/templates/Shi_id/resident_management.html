@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Residents | Barangay Appointment System</title>
+    <style>
+        * { box-sizing:border-box; font-family:'Segoe UI',Tahoma,sans-serif; } body { margin:0; background:linear-gradient(135deg,#07111f,#0d1b2a); color:#eafcff; }
+        header { padding:20px 5%; border-bottom:1px solid rgba(103,232,249,.35); } header h1 { margin:0; font-size:22px; color:#67e8f9; }
+        nav { display:flex; gap:18px; flex-wrap:wrap; margin-top:12px; } nav a { color:#67e8f9; text-decoration:none; font-weight:650; }
+        main { width:min(1200px,94%); margin:26px auto 48px; } .panel { background:rgba(15,23,42,.92); border:1px solid rgba(103,232,249,.35); border-radius:12px; padding:18px; }
+        h2 { margin:0 0 15px; color:#67e8f9; } form { display:flex; flex-wrap:wrap; gap:9px; margin-bottom:18px; }
+        input { flex:1; min-width:200px; padding:10px; border:1px solid rgba(103,232,249,.35); border-radius:7px; color:#eafcff; background:#091523; } button { border:0; border-radius:8px; padding:10px 15px; background:#67e8f9; color:#07111f; font-weight:700; cursor:pointer; }
+        .table-wrap { overflow-x:auto; } table { width:100%; min-width:850px; border-collapse:collapse; } th,td { padding:10px; text-align:left; border-bottom:1px solid rgba(103,232,249,.22); vertical-align:top; } th { background:rgba(96,165,250,.1); color:#67e8f9; text-transform:uppercase; font-size:.82rem; }
+        .muted { color:#a8d6e5; } .pagination { display:flex; justify-content:space-between; margin-top:16px; }
+        @media print { header nav,form,.pagination { display:none; } body { background:white; color:#111; } main { width:100%; } .panel { background:white; color:#111; } }
+    </style>
+</head>
+<body>
+<header>
+    <h1>Resident Directory</h1>
+    {% include 'Shi_id/staff_navigation.html' %}
+</header>
+<main>
+    <section class="panel">
+        <h2>Residents</h2>
+        {% if can_manage_accounts %}<p><a href="{% url 'admin:auth_user_changelist' %}">Manage resident accounts</a></p>{% endif %}
+        <form method="get"><input name="q" value="{{ query }}" placeholder="Search name, email, username, or contact number" aria-label="Search residents"><button type="submit">Search</button><button type="button" onclick="window.print()">Print</button></form>
+        <div class="table-wrap"><table>
+            <thead><tr><th>Resident</th><th>Email</th><th>Contact</th><th>Address</th><th>Appointments</th></tr></thead>
+            <tbody>
+            {% for resident in residents %}
+                <tr>
+                    <td>{{ resident.get_full_name|default:resident.username }}</td>
+                    <td>{{ resident.email }}</td>
+                    <td>{{ resident.resident_profile.contact_number }}</td>
+                    <td>{{ resident.resident_profile.complete_address }}</td>
+                    <td>{{ resident.appointments.count }}</td>
+                </tr>
+            {% empty %}<tr><td colspan="5" class="muted">No residents match your search.</td></tr>{% endfor %}
+            </tbody>
+        </table></div>
+        {% if residents.has_other_pages %}<div class="pagination">
+            {% if residents.has_previous %}<a href="?q={{ query|urlencode }}&page={{ residents.previous_page_number }}">Previous</a>{% else %}<span></span>{% endif %}
+            <span>Page {{ residents.number }} of {{ residents.paginator.num_pages }}</span>
+            {% if residents.has_next %}<a href="?q={{ query|urlencode }}&page={{ residents.next_page_number }}">Next</a>{% endif %}
+        </div>{% endif %}
+    </section>
+</main>
+</body>
+</html>

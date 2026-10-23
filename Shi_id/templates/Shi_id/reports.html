@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Reports | Barangay Appointment System</title>
+    <style>
+        * { box-sizing:border-box; }
+        body { margin:0; background:linear-gradient(135deg,#07111f,#0d1b2a); color:#eafcff; font-family:'Segoe UI',Tahoma,sans-serif; }
+        header { padding:20px 5%; background:rgba(7,17,31,.8); border-bottom:1px solid rgba(103,232,249,.35); }
+        header h1 { margin:0; color:#67e8f9; font-size:22px; }
+        nav { display:flex; gap:18px; flex-wrap:wrap; margin-top:12px; }
+        nav a { color:#67e8f9; text-decoration:none; font-weight:650; }
+        main { width:min(1200px,94%); margin:26px auto 48px; }
+        .panel,.stat { background:rgba(15,23,42,.92); border:1px solid rgba(103,232,249,.35); border-radius:13px; padding:20px; margin-bottom:18px; box-shadow:0 0 24px rgba(103,232,249,.12); }
+        h2 { color:#67e8f9; margin:0 0 15px; font-size:1.3rem; }
+        .filters { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px; align-items:end; }
+        .field { display:grid; gap:5px; }
+        label { font-weight:650; color:#a8d6e5; }
+        input,select { width:100%; min-width:0; padding:10px; border:1px solid rgba(103,232,249,.35); border-radius:7px; background:#091523; color:#eafcff; }
+        .errorlist { color:#fca5a5; margin:3px 0; padding-left:18px; }
+        .button { border:0; border-radius:8px; padding:11px 16px; background:#67e8f9; color:#07111f; font-weight:700; text-decoration:none; cursor:pointer; }
+        .button.secondary { background:#374151; color:#eafcff; }
+        .actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:14px; }
+        .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:12px; }
+        .stat { margin:0; padding:15px; border-top:4px solid #67e8f9; }
+        .stat span { color:#a8d6e5; font-size:.88rem; display:block; }
+        .stat strong { color:#eafcff; display:block; font-size:1.7rem; margin-top:4px; }
+        .rates { display:flex; flex-wrap:wrap; gap:24px; color:#a8d6e5; }
+        .chart-row { display:grid; grid-template-columns:minmax(120px,230px) minmax(100px,1fr) 50px; align-items:center; gap:10px; margin:10px 0; }
+        .chart-label { overflow-wrap:anywhere; font-size:.92rem; }
+        .bar-track { background:#26394d; height:16px; border-radius:10px; overflow:hidden; }
+        .bar { height:100%; min-width:4px; background:#60a5fa; border-radius:10px; }
+        .bar.status-pending { background:#fbbf24; } .bar.status-approved { background:#34d399; }
+        .bar.status-completed { background:#60a5fa; } .bar.status-cancelled { background:#f87171; }
+        .table-wrap { overflow-x:auto; }
+        table { width:100%; min-width:820px; border-collapse:collapse; }
+        th,td { padding:10px; text-align:left; border-bottom:1px solid rgba(103,232,249,.22); vertical-align:top; }
+        th { color:#67e8f9; background:rgba(96,165,250,.1); font-size:.82rem; text-transform:uppercase; }
+        .status { font-weight:700; }
+        .empty { color:#a8d6e5; padding:18px 8px; }
+        .pagination { display:flex; justify-content:space-between; margin-top:15px; }
+        .messages { padding:0; list-style:none; }
+        .messages li { margin-bottom:8px; padding:11px; border-radius:7px; background:#14532d; color:#dcfce7; }
+        @media(max-width:600px) { .chart-row { grid-template-columns:1fr 45px; } .chart-label { grid-column:1/-1; } .bar-track { grid-column:1; } }
+        a { color:#67e8f9; }
+        @media print { header nav,.filters,.actions,.pagination { display:none; } body { background:white; color:#111; } main { width:100%; margin:0; } .panel,.stat { box-shadow:none; break-inside:avoid; background:white; color:#111; } }
+    </style>
+</head>
+<body>
+<header>
+    <h1>Appointment Reports</h1>
+    {% include 'Shi_id/staff_navigation.html' %}
+</header>
+<main>
+    {% for message in messages %}<ul class="messages"><li>{{ message }}</li></ul>{% endfor %}
+    <section class="panel">
+        <h2>Report filters</h2>
+        <form method="get" class="filters">
+            {% for field in form %}
+                <div class="field">
+                    <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+                    {{ field }}
+                    {% if field.errors %}<ul class="errorlist">{% for error in field.errors %}<li>{{ error }}</li>{% endfor %}</ul>{% endif %}
+                </div>
+            {% endfor %}
+            <button class="button" type="submit">Update Report</button>
+        </form>
+        <div class="actions">
+            {% if report_ready %}
+            <a class="button secondary" href="{% url 'export_appointments_csv' %}?{{ request.GET.urlencode }}">Export filtered CSV</a>
+            <button class="button secondary" type="button" onclick="window.print()">Print Report</button>
+            {% endif %}
+        </div>
+    </section>
+
+    {% if report_ready %}
+    <section class="stats" aria-label="Appointment summary">
+        <div class="stat"><span>Total appointments</span><strong>{{ total_count }}</strong></div>
+        <div class="stat"><span>Pending</span><strong>{{ status_counts.Pending }}</strong></div>
+        <div class="stat"><span>Approved</span><strong>{{ status_counts.Approved }}</strong></div>
+        <div class="stat"><span>Completed</span><strong>{{ status_counts.Completed }}</strong></div>
+        <div class="stat"><span>Cancelled</span><strong>{{ status_counts.Cancelled }}</strong></div>
+        <div class="stat"><span>Today</span><strong>{{ today_count }}</strong></div>
+        <div class="stat"><span>Upcoming active</span><strong>{{ upcoming_count }}</strong></div>
+    </section>
+    <section class="panel">
+        <h2>Completion and cancellation</h2>
+        <div class="rates"><span>Completion rate: <strong>{{ completed_rate }}%</strong></span><span>Cancellation rate: <strong>{{ cancelled_rate }}%</strong></span></div>
+    </section>
+    <section class="panel">
+        <h2>Appointments over time</h2>
+        {% for item in time_series %}
+            <div class="chart-row"><span class="chart-label">{{ item.label }}</span><div class="bar-track"><div class="bar" style="width:{{ item.width }}%"></div></div><strong>{{ item.count }}</strong></div>
+        {% empty %}<p class="empty">No appointment data matches the selected filters.</p>{% endfor %}
+    </section>
+    <section class="panel">
+        <h2>Appointment statuses</h2>
+        {% for item in status_series %}
+            <div class="chart-row"><span class="chart-label">{{ item.label }}</span><div class="bar-track"><div class="bar status-{{ item.label|lower }}" style="width:{{ item.width }}%"></div></div><strong>{{ item.count }}</strong></div>
+        {% endfor %}
+    </section>
+    <section class="panel">
+        <h2>Most requested services</h2>
+        {% for item in service_series %}
+            <div class="chart-row"><span class="chart-label">{{ item.label }}</span><div class="bar-track"><div class="bar" style="width:{{ item.width }}%"></div></div><strong>{{ item.count }}</strong></div>
+        {% empty %}<p class="empty">No service requests match the selected filters.</p>{% endfor %}
+    </section>
+    <section class="panel">
+        <h2>Appointments matching filters</h2>
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>Appointment ID</th><th>Resident</th><th>Service</th><th>Request details</th><th>Date and time</th><th>Status</th></tr></thead>
+                <tbody>
+                {% for appointment in appointment_page %}
+                    <tr>
+                        <td><a href="{% url 'appointment_detail' appointment.appointment_id %}">{{ appointment.appointment_id }}</a></td>
+                        <td>{{ appointment.resident_name }}</td>
+                        <td>{% if appointment.service_name_snapshot %}{{ appointment.service_name_snapshot }}{% elif appointment.service %}{{ appointment.service.name }}{% else %}Not recorded{% endif %}</td>
+                        <td>{{ appointment.purpose }}</td>
+                        <td>{{ appointment.date|date:"M j, Y" }}<br>{{ appointment.time|time:"g:i A" }}–{{ appointment.end_time|time:"g:i A" }}</td>
+                        <td class="status">{{ appointment.status }}</td>
+                    </tr>
+                {% empty %}<tr><td colspan="6" class="empty">No matching appointments.</td></tr>{% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% if appointment_page.has_other_pages %}
+        <div class="pagination">
+            {% if appointment_page.has_previous %}<a href="?{{ request.GET.urlencode }}&page={{ appointment_page.previous_page_number }}">Previous</a>{% else %}<span></span>{% endif %}
+            <span>Page {{ appointment_page.number }} of {{ appointment_page.paginator.num_pages }}</span>
+            {% if appointment_page.has_next %}<a href="?{{ request.GET.urlencode }}&page={{ appointment_page.next_page_number }}">Next</a>{% endif %}
+        </div>
+        {% endif %}
+    </section>
+    {% endif %}
+</main>
+</body>
+</html>

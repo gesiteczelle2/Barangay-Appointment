@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{% if user.is_authenticated and user.is_staff %}Staff Dashboard{% elif user.is_authenticated %}Resident Home{% else %}Welcome{% endif %} | Barangay Appointment System</title>
+    <style>
+        :root {
+            --bg:#07111f; --bg-2:#0d1b2a; --panel:rgba(15,23,42,.88);
+            --line:rgba(103,232,249,.35); --cyan:#67e8f9; --blue:#60a5fa;
+            --purple:#a78bfa; --green:#34d399; --amber:#fbbf24; --red:#f87171;
+            --text:#e5f7ff; --muted:#9ec3d8; --shadow:0 0 24px rgba(103,232,249,.22);
+        }
+        * { margin:0; padding:0; box-sizing:border-box; font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif; }
+        body { background:radial-gradient(circle at top left,rgba(96,165,250,.16),transparent 32%),radial-gradient(circle at bottom right,rgba(167,139,250,.14),transparent 34%),linear-gradient(135deg,var(--bg),var(--bg-2)); color:var(--text); min-height:100vh; }
+        header { background:rgba(7,17,31,.8); border-bottom:1px solid var(--line); backdrop-filter:blur(12px); padding:22px 40px; display:flex; justify-content:space-between; align-items:center; gap:18px; box-shadow:var(--shadow); }
+        header h1 { color:var(--text); font-size:24px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; }
+        nav { display:flex; align-items:center; flex-wrap:wrap; gap:22px; }
+        nav a,nav button,.user-label { color:var(--muted); text-decoration:none; font-size:14px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; }
+        nav a:hover,nav button:hover { color:var(--cyan); text-shadow:0 0 10px rgba(103,232,249,.8); }
+        nav form { margin:0; } nav button { padding:0; border:0; background:none; cursor:pointer; }
+        main { width:90%; max-width:1220px; margin:30px auto; }
+        .hero,.panel,.stat { background:linear-gradient(180deg,rgba(15,23,42,.9),rgba(8,16,28,.95)); border:1px solid var(--line); border-radius:18px; box-shadow:var(--shadow); }
+        .hero { padding:30px 28px; margin-bottom:26px; }
+        .hero h2 { color:var(--cyan); margin-bottom:14px; font-size:clamp(24px,3vw,36px); letter-spacing:.04em; }
+        .hero p { color:var(--muted); max-width:900px; line-height:1.7; font-size:16px; }
+        .actions { display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-top:20px; }
+        .button { display:inline-block; border:1px solid rgba(103,232,249,.5); border-radius:10px; padding:12px 19px; background:linear-gradient(135deg,var(--cyan),#7dd3fc); color:var(--bg); text-decoration:none; font-weight:700; cursor:pointer; box-shadow:0 0 18px rgba(103,232,249,.35); }
+        .button.secondary { color:var(--cyan); background:rgba(10,18,31,.75); }
+        .button.small { padding:7px 10px; font-size:.84rem; }
+        .stats { display:grid; grid-template-columns:repeat(4,1fr); gap:18px; margin-bottom:30px; }
+        .stat { padding:24px 18px; text-align:center; position:relative; overflow:hidden; }
+        .stat:before { content:""; position:absolute; inset:0 0 auto; height:3px; background:linear-gradient(90deg,var(--cyan),var(--purple)); }
+        .stat span { display:block; color:var(--muted); font-size:13px; letter-spacing:.08em; text-transform:uppercase; }
+        .stat strong { display:block; color:var(--text); font-size:36px; margin-top:10px; text-shadow:0 0 16px rgba(103,232,249,.35); }
+        .panel { padding:24px 18px; margin-bottom:22px; overflow-x:auto; }
+        .panel h2 { color:var(--cyan); margin-bottom:18px; font-size:25px; }
+        .filters { display:grid; grid-template-columns:2fr repeat(3,minmax(130px,1fr)) auto; gap:10px; align-items:end; }
+        .field { display:grid; gap:6px; } label { color:var(--muted); font-weight:600; }
+        input,select { min-width:0; width:100%; padding:10px; border:1px solid var(--line); border-radius:8px; color:var(--text); background:rgba(10,18,31,.9); }
+        .table-wrap { overflow-x:auto; }
+        table { border-collapse:collapse; width:100%; min-width:820px; }
+        th,td { text-align:left; padding:14px 12px; border-bottom:1px solid rgba(103,232,249,.18); vertical-align:top; }
+        th { background:rgba(96,165,250,.1); color:var(--cyan); font-size:12px; letter-spacing:.1em; text-transform:uppercase; }
+        tbody tr:hover { background:rgba(103,232,249,.05); } td { color:var(--text); }
+        .status { display:inline-block; padding:7px 12px; border-radius:999px; font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; border:1px solid transparent; }
+        .status.pending { color:#fcd34d; background:rgba(251,191,36,.16); border-color:rgba(251,191,36,.4); }
+        .status.approved { color:#6ee7b7; background:rgba(52,211,153,.12); border-color:rgba(52,211,153,.4); }
+        .status.completed { color:#93c5fd; background:rgba(96,165,250,.12); border-color:rgba(96,165,250,.4); }
+        .status.cancelled { color:#fca5a5; background:rgba(248,113,113,.14); border-color:rgba(248,113,113,.45); }
+        .messages { list-style:none; margin:0 0 16px; padding:0; }
+        .messages li,.notice { padding:12px 16px; margin-bottom:10px; border:1px solid var(--line); border-radius:10px; background:var(--panel); color:var(--muted); }
+        .messages li.error { color:#fca5a5; } .messages li.success { color:#6ee7b7; }
+        .inline-form { display:inline; } .empty { color:var(--muted); padding:18px 8px; }
+        .panel a { color:var(--cyan); } small { color:var(--muted); }
+        @media(max-width:800px) { header { flex-direction:column; text-align:center; } nav { justify-content:center; gap:12px; } .stats { grid-template-columns:repeat(2,1fr); } }
+        @media(max-width:500px) { main { width:95%; } .stats,.filters { grid-template-columns:1fr; } }
+    </style>
+</head>
+<body>
+<header>
+    <h1>Barangay Appointment Management System</h1>
+    {% include 'Shi_id/staff_navigation.html' %}
+</header>
+<main>
+    {% if messages %}
+    <ul class="messages">
+        {% for message in messages %}<li class="{{ message.tags }}">{{ message }}</li>{% endfor %}
+    </ul>
+    {% endif %}
+
+    {% if not user.is_authenticated %}
+    <section class="hero">
+        <h2>Welcome to your Barangay Appointment System</h2>
+        <p>Access barangay services with convenient online appointment requests. Sign in to manage your appointments or register as a resident to get started.</p>
+        <div class="actions">
+            <a class="button" href="{% url 'login' %}">Log In</a>
+            <a class="button secondary" href="{% url 'signup' %}">Register</a>
+        </div>
+    </section>
+
+    {% elif user.is_staff %}
+    <section class="hero">
+        <h2>Staff Dashboard</h2>
+        <p>Welcome, {{ user.get_full_name|default:user.username }}. Review appointment activity and manage authorized barangay services.</p>
+        <p>Use the navigation above to manage appointments, schedules, residents, services, and reports.</p>
+    </section>
+    <section class="stats" aria-label="Appointment summary">
+        <div class="stat"><span>Total Appointments</span><strong>{{ total_count }}</strong></div>
+        <div class="stat"><span>Pending</span><strong>{{ pending_count }}</strong></div>
+        <div class="stat"><span>Approved</span><strong>{{ approved_count }}</strong></div>
+        <div class="stat"><span>Completed</span><strong>{{ completed_count }}</strong></div>
+        <div class="stat"><span>Cancelled</span><strong>{{ cancelled_count }}</strong></div>
+        <div class="stat"><span>Registered residents</span><strong>{{ resident_count }}</strong></div>
+        <div class="stat"><span>Scheduled today</span><strong>{{ today_count }}</strong></div>
+        <div class="stat"><span>Upcoming active</span><strong>{{ upcoming_count }}</strong></div>
+    </section>
+    <section class="panel" id="appointments">
+        <h2>Appointments</h2>
+        <ul class="messages" id="appointment-action-messages" aria-live="polite" hidden></ul>
+        <p><a class="button secondary" href="{% url 'book_appointment' %}">Create Appointment</a></p>
+        <form class="filters" method="get">
+            <div class="field">
+                <label for="search">Appointment ID or resident</label>
+                <input id="search" name="q" value="{{ appointment_search_query }}" placeholder="BRGY-2026-0001 or resident name">
+            </div>
+            <div class="field">
+                <label for="filter-service">Service</label>
+                <select id="filter-service" name="service">
+                    <option value="">All services</option>
+                    {% for service in services %}<option value="{{ service.pk }}" {% if selected_service == service.pk|stringformat:"s" %}selected{% endif %}>{{ service.name }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="field">
+                <label for="filter-status">Status</label>
+                <select id="filter-status" name="status">
+                    <option value="">All statuses</option>
+                    {% for value,label in status_choices %}<option value="{{ value }}" {% if selected_status == value %}selected{% endif %}>{{ label }}</option>{% endfor %}
+                </select>
+            </div>
+            <div class="field">
+                <label for="filter-date">Date</label>
+                <input id="filter-date" type="date" name="date" value="{{ selected_date }}">
+            </div>
+            <button class="button" type="submit">Filter</button>
+        </form>
+        <div class="table-wrap" style="margin-top:18px">
+            <table>
+                <thead><tr><th>Appointment ID</th><th>Resident</th><th>Service / Request</th><th>Date &amp; time</th><th>Status</th><th>Actions</th></tr></thead>
+                <tbody>
+                {% for appointment in appointments %}
+                    <tr id="appointment-{{ appointment.appointment_id }}" data-status-url="{% url 'update_appointment_status' appointment.appointment_id %}">
+                        <td><a href="{% url 'appointment_detail' appointment.appointment_id %}">{{ appointment.appointment_id }}</a></td>
+                        <td>{{ appointment.resident_name }}</td>
+                        <td>{% if appointment.service_name_snapshot %}{{ appointment.service_name_snapshot }}{% elif appointment.service %}{{ appointment.service.name }}{% else %}{{ appointment.purpose }}{% endif %}{% if appointment.purpose and appointment.service_id %}<br><small>{{ appointment.purpose }}</small>{% endif %}</td>
+                        <td>{{ appointment.date|date:"M j, Y" }}<br>{{ appointment.time|time:"g:i A" }}–{{ appointment.end_time|time:"g:i A" }}</td>
+                        <td data-appointment-status><span class="status {{ appointment.status|lower }}">{{ appointment.status }}</span></td>
+                        <td data-appointment-actions>
+                            <a href="{% url 'appointment_detail' appointment.appointment_id %}">Details</a>
+                            {% if appointment.status == 'Pending' %}
+                                <form class="inline-form appointment-status-form" method="post" action="{% url 'update_appointment_status' appointment.appointment_id %}" data-confirm="Approve this pending appointment?">
+                                    {% csrf_token %}<input type="hidden" name="status" value="Approved"><input type="hidden" name="return_to" value="{{ request.get_full_path }}#appointment-{{ appointment.appointment_id }}"><button class="button small" type="submit">Approve</button>
+                                </form>
+                                <form class="inline-form appointment-status-form" method="post" action="{% url 'update_appointment_status' appointment.appointment_id %}" data-confirm="Cancel this pending appointment?">
+                                    {% csrf_token %}<input type="hidden" name="status" value="Cancelled"><input type="hidden" name="return_to" value="{{ request.get_full_path }}#appointment-{{ appointment.appointment_id }}"><button class="button small secondary" type="submit">Cancel</button>
+                                </form>
+                            {% elif appointment.status == 'Approved' %}
+                                <form class="inline-form appointment-status-form" method="post" action="{% url 'update_appointment_status' appointment.appointment_id %}" data-confirm="Mark this appointment completed?">
+                                    {% csrf_token %}<input type="hidden" name="status" value="Completed"><input type="hidden" name="return_to" value="{{ request.get_full_path }}#appointment-{{ appointment.appointment_id }}"><button class="button small" type="submit">Complete</button>
+                                </form>
+                                <form class="inline-form appointment-status-form" method="post" action="{% url 'update_appointment_status' appointment.appointment_id %}" data-confirm="Cancel this approved appointment?">
+                                    {% csrf_token %}<input type="hidden" name="status" value="Cancelled"><input type="hidden" name="return_to" value="{{ request.get_full_path }}#appointment-{{ appointment.appointment_id }}"><button class="button small secondary" type="submit">Cancel</button>
+                                </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% empty %}<tr><td colspan="6" class="empty">No appointments match these filters.</td></tr>{% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    {% else %}
+    <section class="hero">
+        <h2>Welcome, {{ profile.full_name|default:user.get_full_name|default:user.username }}</h2>
+        <p>Book a barangay service, review upcoming appointments, and keep track of your request history.</p>
+        <div class="actions"><a class="button" href="{% url 'book_appointment' %}">Book an Appointment</a></div>
+    </section>
+    <section class="panel">
+        <h2>Upcoming appointments</h2>
+        <div class="table-wrap">
+            <table>
+                <thead><tr><th>Appointment ID</th><th>Service / Request</th><th>Date &amp; time</th><th>Status</th><th>Details</th></tr></thead>
+                <tbody>
+                {% for appointment in upcoming_appointments %}
+                    <tr>
+                        <td>{{ appointment.appointment_id }}</td>
+                        <td>{% if appointment.service_name_snapshot %}{{ appointment.service_name_snapshot }}{% elif appointment.service %}{{ appointment.service.name }}{% else %}{{ appointment.purpose }}{% endif %}{% if appointment.purpose and appointment.service_id %}<br><small>{{ appointment.purpose }}</small>{% endif %}</td>
+                        <td>{{ appointment.date|date:"M j, Y" }}<br>{{ appointment.time|time:"g:i A" }}–{{ appointment.end_time|time:"g:i A" }}</td>
+                        <td><span class="status {{ appointment.status|lower }}">{{ appointment.status }}</span></td>
+                        <td><a href="{% url 'appointment_detail' appointment.appointment_id %}">View details</a></td>
+                    </tr>
+                {% empty %}<tr><td colspan="5" class="empty">You have no upcoming appointments. Book an appointment whenever you need a barangay service.</td></tr>{% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+    <section class="panel">
+        <h2>Appointment history</h2>
+        <form class="filters" method="get" style="grid-template-columns:minmax(220px,1fr) auto">
+            <div class="field"><label for="appointment-id">Search by Appointment ID</label><input id="appointment-id" name="appointment_id" value="{{ appointment_search_query }}" placeholder="BRGY-2026-0001"></div>
+            <button class="button" type="submit">Search</button>
+        </form>
+        <div class="table-wrap" style="margin-top:16px">
+            <table>
+                <thead><tr><th>Appointment ID</th><th>Service / Request</th><th>Date &amp; time</th><th>Status</th><th>Booked</th><th>Actions</th></tr></thead>
+                <tbody>
+                {% for appointment in recent_appointments %}
+                    <tr>
+                        <td>{{ appointment.appointment_id }}</td>
+                        <td>{% if appointment.service_name_snapshot %}{{ appointment.service_name_snapshot }}{% elif appointment.service %}{{ appointment.service.name }}{% else %}{{ appointment.purpose }}{% endif %}{% if appointment.purpose and appointment.service_id %}<br><small>{{ appointment.purpose }}</small>{% endif %}</td>
+                        <td>{{ appointment.date|date:"M j, Y" }}<br>{{ appointment.time|time:"g:i A" }}–{{ appointment.end_time|time:"g:i A" }}</td>
+                        <td><span class="status {{ appointment.status|lower }}">{{ appointment.status }}</span></td>
+                        <td>{{ appointment.created_at|date:"M j, Y g:i A" }}</td>
+                        <td>
+                            <a href="{% url 'appointment_detail' appointment.appointment_id %}">Details</a>
+                            {% if appointment.status == 'Pending' or appointment.status == 'Approved' %}
+                                <form method="post" action="{% url 'cancel_appointment' appointment.appointment_id %}" onsubmit="return confirm('Cancel this appointment?')">
+                                    {% csrf_token %}<button class="button small secondary" type="submit">Cancel</button>
+                                </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                {% empty %}<tr><td colspan="6" class="empty">No appointment history yet. Your bookings will appear here.</td></tr>{% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+    {% endif %}
+</main>
+{% if user.is_staff %}
+<script>
+    (() => {
+        const table = document.querySelector('#appointments tbody');
+        const notices = document.getElementById('appointment-action-messages');
+        if (!table || !notices) return;
+
+        const showNotice = (message, isError) => {
+            notices.replaceChildren();
+            const item = document.createElement('li');
+            item.className = isError ? 'error' : 'success';
+            item.textContent = message;
+            notices.append(item);
+            notices.hidden = false;
+        };
+
+        const makeActionForm = (row, csrfToken, status, label, confirmation, secondary) => {
+            const form = document.createElement('form');
+            form.className = 'inline-form appointment-status-form';
+            form.method = 'post';
+            form.action = row.dataset.statusUrl;
+            form.dataset.confirm = confirmation;
+
+            const csrf = document.createElement('input');
+            csrf.type = 'hidden';
+            csrf.name = 'csrfmiddlewaretoken';
+            csrf.value = csrfToken;
+            const statusInput = document.createElement('input');
+            statusInput.type = 'hidden';
+            statusInput.name = 'status';
+            statusInput.value = status;
+            form.append(csrf, statusInput);
+
+            const button = document.createElement('button');
+            button.className = `button small${secondary ? ' secondary' : ''}`;
+            button.type = 'submit';
+            button.textContent = label;
+            form.append(button);
+            return form;
+        };
+
+        const renderActions = (row, status) => {
+            const cell = row.querySelector('[data-appointment-actions]');
+            const details = cell.querySelector('a');
+            const csrfToken = row.querySelector('[name="csrfmiddlewaretoken"]').value;
+            cell.replaceChildren(details);
+            if (status === 'Approved') {
+                cell.append(
+                    makeActionForm(row, csrfToken, 'Completed', 'Complete', 'Mark this appointment completed?', false),
+                    makeActionForm(row, csrfToken, 'Cancelled', 'Cancel', 'Cancel this approved appointment?', true),
+                );
+            } else if (status === 'Pending') {
+                cell.append(
+                    makeActionForm(row, csrfToken, 'Approved', 'Approve', 'Approve this pending appointment?', false),
+                    makeActionForm(row, csrfToken, 'Cancelled', 'Cancel', 'Cancel this pending appointment?', true),
+                );
+            }
+        };
+
+        table.addEventListener('submit', async (event) => {
+            const form = event.target.closest('.appointment-status-form');
+            if (!form || form.dataset.submitting === 'true') return;
+            if (!window.confirm(form.dataset.confirm)) {
+                event.preventDefault();
+                return;
+            }
+
+            event.preventDefault();
+            const button = form.querySelector('button[type="submit"]');
+            const originalButtonText = button.textContent;
+            form.dataset.submitting = 'true';
+            button.disabled = true;
+            button.textContent = 'Saving...';
+            try {
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    body: new FormData(form),
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json',
+                    },
+                });
+                if (!response.headers.get('content-type')?.includes('application/json')) {
+                    throw new Error('The server did not return an appointment update. Your session may have expired; reload and sign in again.');
+                }
+                const result = await response.json();
+                if (!response.ok || !result.ok) {
+                    showNotice(result.message || 'The appointment status could not be updated.', true);
+                    button.disabled = false;
+                    button.textContent = originalButtonText;
+                    return;
+                }
+
+                const row = form.closest('tr');
+                const status = row.querySelector('[data-appointment-status] span');
+                status.className = `status ${result.status.toLowerCase()}`;
+                status.textContent = result.status;
+                renderActions(row, result.status);
+                showNotice(result.message, false);
+            } catch (error) {
+                showNotice(error.message || 'The appointment status could not be updated. Check your connection and try again.', true);
+                button.disabled = false;
+                button.textContent = originalButtonText;
+            } finally {
+                delete form.dataset.submitting;
+            }
+        });
+    })();
+</script>
+{% endif %}
+</body>
+</html>

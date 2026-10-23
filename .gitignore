@@ -1,0 +1,13 @@
+
+.env
+.env.*
+!.env.example
+*.sqlite3
+backup_data.json
+__pycache__/
+*.pyc
+.venv/
+venv/
+staticfiles/
+media/
+.vercel/

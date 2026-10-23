@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Book an Appointment</title>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        body {
+            margin: 0;
+            background-color: #f4f6f9;
+        }
+
+        header {
+            background-color: #1769aa;
+            color: white;
+            padding: 18px 40px;
+        }
+
+        header h1 {
+            margin: 0;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 700px;
+            margin: 40px auto;
+        }
+
+        .form-box {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        h2 {
+            color: #1769aa;
+            margin-bottom: 25px;
+        }
+
+        .form-group {
+            margin-bottom: 18px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 7px;
+            font-weight: bold;
+        }
+
+        input,
+        select {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+        }
+
+        .btn {
+            background-color: #1769aa;
+            color: white;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        .btn:hover {
+            background-color: #0d4f82;
+        }
+
+        .back {
+            display: inline-block;
+            margin-top: 15px;
+            color: #1769aa;
+            text-decoration: none;
+        }
+
+        .errorlist {
+            color: red;
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+    <header>
+
+        <h1>Barangay Appointment Management System</h1>
+
+    </header>
+
+
+    <main class="container">
+
+        <div class="form-box">
+
+            <h2>Book an Appointment</h2>
+
+            <form method="POST">
+
+                {% csrf_token %}
+
+                {{ form.as_p }}
+
+                <button type="submit" class="btn">
+                    Submit Appointment
+                </button>
+
+            </form>
+
+            <br>
+
+            <a href="{% url 'home' %}" class="back">
+                ← Back to Home
+            </a>
+
+        </div>
+
+    </main>
+
+</body>
+
+</html>

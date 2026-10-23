@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Schedule Management</title>
+    <style>
+        :root { color-scheme:dark; --cyan:#67e8f9; --line:rgba(103,232,249,.35); --text:#eafcff; }
+        * { box-sizing:border-box; font-family:'Segoe UI',Tahoma,sans-serif; }
+        body { margin:0; background:linear-gradient(135deg,#07111f,#0d1b2a); color:var(--text); }
+        header { padding:20px 5%; border-bottom:1px solid var(--line); } header nav { display:flex; flex-wrap:wrap; gap:16px; margin-top:12px; } main { width:min(96%,1100px); margin:28px auto; }
+        .panel { padding:clamp(16px,3vw,28px); margin-bottom:20px; background:rgba(15,23,42,.92); border:1px solid var(--line); border-radius:16px; overflow-x:auto; }
+        h1,h2 { color:var(--cyan); } .top { display:flex; justify-content:space-between; flex-wrap:wrap; gap:12px; }
+        a { color:var(--cyan); } .calendar { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:6px; }
+        .day { min-height:54px; display:grid; place-items:center; text-decoration:none; color:var(--text); border-radius:8px; }
+        .weekday { color:#a8d6e5; text-align:center; padding:8px 2px; font-size:.8rem; }
+        .green { background:#14532d; border:1px solid #22c55e; } .red { background:#7f1d1d; border:1px solid #ef4444; }
+        .gray { background:#374151; border:1px solid #6b7280; } .outside { opacity:.4; } .selected { outline:2px solid var(--cyan); }
+        .slots { display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:8px; }
+        .slot { padding:10px; border-radius:8px; } .legend { display:flex; gap:9px; flex-wrap:wrap; margin:12px 0; }
+        .legend span { padding:6px 9px; border-radius:6px; }
+        table { width:100%; border-collapse:collapse; min-width:700px; } td,th { padding:10px; text-align:left; border-bottom:1px solid var(--line); }
+        form.close-form { display:grid; gap:12px; max-width:600px; } label { display:grid; gap:6px; color:#a8d6e5; }
+        input,select { padding:11px; border:1px solid var(--line); border-radius:8px; color:var(--text); background:#091523; }
+        button { padding:10px 14px; background:var(--cyan); color:#07111f; border:0; border-radius:8px; font-weight:700; cursor:pointer; }
+        .notice { margin:10px 0; padding:12px; border-radius:8px; background:#7f1d1d; }
+        .errorlist { color:#fca5a5; }
+        @media(max-width:560px) { .day { min-height:42px; font-size:.85rem; } .weekday { font-size:.65rem; } }
+    </style>
+</head>
+<body>
+<header>
+    <h1>Staff Schedule Management</h1>
+    {% include 'Shi_id/staff_navigation.html' %}
+</header>
+<main>
+    {% for message in messages %}<div class="notice">{{ message }}</div>{% endfor %}
+    <section class="panel">
+        <div class="top">
+            <h2>{{ month_label }}</h2>
+            <div><a href="?month={{ previous_month }}&date={{ selected_day|date:'Y-m-d' }}">← Previous</a> |
+                <a href="?month={{ next_month }}&date={{ selected_day|date:'Y-m-d' }}">Next →</a></div>
+        </div>
+        <div class="legend"><span class="green">Available</span><span class="red">Booked / closed</span><span class="gray">Past / weekend</span></div>
+        <div class="calendar">
+            <div class="weekday">Mon</div><div class="weekday">Tue</div><div class="weekday">Wed</div>
+            <div class="weekday">Thu</div><div class="weekday">Fri</div><div class="weekday">Sat</div><div class="weekday">Sun</div>
+            {% for week in month_days %}{% for day in week %}
+                <a class="day {{ day.state }} {% if not day.in_month %}outside{% endif %} {% if day.date == selected_day %}selected{% endif %}"
+                   href="?month={{ month_start|date:'Y-m' }}&date={{ day.date|date:'Y-m-d' }}"
+                   aria-label="{{ day.date|date:'l, F j, Y' }}: {{ day.state }}">{{ day.number }}</a>
+            {% endfor %}{% endfor %}
+        </div>
+    </section>
+
+    <section class="panel">
+        <h2>Sessions — {{ selected_day|date:"l, F j, Y" }}</h2>
+        <div class="slots">
+            {% for slot in slots %}
+            <div class="slot {{ slot.state }}">
+                {{ slot.start|time:"g:i A" }}–{{ slot.end|time:"g:i A" }} · {{ slot.state|title }}
+                {% if slot.reason %}<br><small>{{ slot.reason }}</small>{% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+
+    <section class="panel">
+        <h2>Appointments on {{ selected_day|date:"M j, Y" }}</h2>
+        <table>
+            <thead><tr><th>ID</th><th>Resident</th><th>Address</th><th>Service</th><th>Time</th><th>Purpose</th><th>Status</th></tr></thead>
+            <tbody>{% for appointment in selected_appointments %}
+                <tr>
+                    <td><a href="{% url 'appointment_detail' appointment.appointment_id %}">{{ appointment.appointment_id }}</a></td>
+                    <td>{{ appointment.resident_name }}</td>
+                    <td>{{ appointment.resident_address|default:"—" }}</td>
+                    <td>{% if appointment.service_name_snapshot %}{{ appointment.service_name_snapshot }}{% elif appointment.service %}{{ appointment.service.name }}{% else %}Not recorded{% endif %}</td>
+                    <td>{{ appointment.time|time:"g:i A" }}–{{ appointment.end_time|time:"g:i A" }}</td>
+                    <td>{{ appointment.purpose }}</td><td>{{ appointment.status }}</td>
+                </tr>
+            {% empty %}<tr><td colspan="7">No appointments are scheduled for this date.</td></tr>{% endfor %}</tbody>
+        </table>
+    </section>
+
+    {% if conflicting_appointments %}
+    <section class="panel">
+        <h2>Resolve appointments before closing</h2>
+        <p>These active bookings must be cancelled or otherwise resolved before the schedule can be closed.</p>
+        <ul>{% for appointment in conflicting_appointments %}<li>{{ appointment.appointment_id }} — {{ appointment.resident_name }} — {{ appointment.status }}</li>{% endfor %}</ul>
+    </section>
+    {% endif %}
+
+    <section class="panel">
+        <h2>Close a date or 30-minute session</h2>
+        <p>Ordinary weekdays remain open automatically. A closure requires a reason. Active appointments prevent closure until resolved.</p>
+        <form class="close-form" method="post" onsubmit="return confirm('Close this date or time slot? Existing active appointments will be checked before the closure is saved.')">
+            {% csrf_token %}<input type="hidden" name="action" value="close">
+            {% if form.non_field_errors %}<ul class="errorlist">{{ form.non_field_errors }}</ul>{% endif %}
+            {% for field in form %}
+                <label>{{ field.label }}{{ field }}{% if field.errors %}<span class="errorlist">{{ field.errors }}</span>{% endif %}</label>
+            {% endfor %}
+            <button type="submit">Close Day / Time Slot</button>
+        </form>
+    </section>
+
+    <section class="panel">
+        <h2>Closures on {{ selected_day|date:"M j, Y" }}</h2>
+        {% for closure in closures %}
+            <p>
+                {% if closure.time %}{{ closure.time|time:"g:i A" }} session{% else %}Entire day{% endif %}
+                — {{ closure.reason }}
+                <form method="post" style="display:inline" onsubmit="return confirm('Reopen this date or time slot?')">
+                    {% csrf_token %}<input type="hidden" name="action" value="reopen">
+                    <input type="hidden" name="closure_id" value="{{ closure.pk }}">
+                    <button type="submit">Reopen</button>
+                </form>
+            </p>
+        {% empty %}<p>No manual closures for this date.</p>{% endfor %}
+    </section>
+</main>
+</body>
+</html>
